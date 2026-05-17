@@ -66,6 +66,22 @@ def fetch_q3(cursor, run_id: str) -> list:
     return cursor.fetchall()
 
 
+def _fetch_query_meta(cursor, table: str, run_id: str) -> dict | None:
+    cursor.execute(
+        f"SELECT batch_id, execution_time FROM {table} WHERE run_id = %s LIMIT 1",
+        (run_id,)
+    )
+    row = cursor.fetchone()
+    return {'batch_id': row[0], 'execution_time': row[1]} if row else None
+
+
+QUERY_NAMES = {
+    'q1': 'Daily Traffic Summary',
+    'q2': 'Top Requested Resources',
+    'q3': 'Hourly Error Analysis',
+}
+
+
 def print_run_header(run: dict):
     print("\n" + "=" * 72)
     print("  ETL RUN REPORT")
@@ -79,6 +95,7 @@ def print_run_header(run: dict):
     print(f"  Batch Size    : {run['batch_size']:,}")
     print(f"  Num Batches   : {run['num_batches']}")
     print(f"  Avg Batch Size: {run['avg_batch_size']:.1f}")
+    print(f"  Queries       : Q1={QUERY_NAMES['q1']}  |  Q2={QUERY_NAMES['q2']}  |  Q3={QUERY_NAMES['q3']}")
     print("=" * 72)
 
 
@@ -107,19 +124,32 @@ def main(run_id, pipeline, latest):
         print_run_header(run)
         rid = str(run['run_id'])
 
-        print("\n--- Query 1: Daily Traffic Summary ---")
+        # Each block prints: query name, batch_id, execution_time, then results
+        q1_meta = _fetch_query_meta(cur, 'q1_daily_traffic', rid)
+        print(f"\n--- Query Name : {QUERY_NAMES['q1']} ---")
+        if q1_meta:
+            print(f"    Batch ID   : {q1_meta['batch_id']}")
+            print(f"    Exec Time  : {q1_meta['execution_time']}")
         q1 = fetch_q1(cur, rid)
         print(tabulate(q1,
             headers=['log_date', 'status_code', 'request_count', 'total_bytes'],
             tablefmt='simple', intfmt=','))
 
-        print(f"\n--- Query 2: Top 20 Requested Resources ---")
+        q2_meta = _fetch_query_meta(cur, 'q2_top_resources', rid)
+        print(f"\n--- Query Name : {QUERY_NAMES['q2']} (Top 20) ---")
+        if q2_meta:
+            print(f"    Batch ID   : {q2_meta['batch_id']}")
+            print(f"    Exec Time  : {q2_meta['execution_time']}")
         q2 = fetch_q2(cur, rid)
         print(tabulate(q2,
             headers=['resource_path', 'request_count', 'total_bytes', 'distinct_hosts'],
             tablefmt='simple', intfmt=','))
 
-        print(f"\n--- Query 3: Hourly Error Analysis ---")
+        q3_meta = _fetch_query_meta(cur, 'q3_hourly_errors', rid)
+        print(f"\n--- Query Name : {QUERY_NAMES['q3']} ---")
+        if q3_meta:
+            print(f"    Batch ID   : {q3_meta['batch_id']}")
+            print(f"    Exec Time  : {q3_meta['execution_time']}")
         q3 = fetch_q3(cur, rid)
         print(tabulate(q3,
             headers=['log_date', 'log_hour', 'error_count', 'total_count',
