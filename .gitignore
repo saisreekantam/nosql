@@ -1,0 +1,34 @@
+# Large raw data files — download separately from NASA ITA
+data/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment
+.env
+*.env
+
+# Sensitive config (use config.example.py as template)
+config.py
+
+# Logs
+derby.log
+pig_*.log
+*.log
+
+# Zip archives (generated artifacts)
+*.zip
+
+# IDE / OS
+.DS_Store
+.vscode/
+*.iml
+.idea/
+
+# Virtual env
+venv/
+env/
